@@ -81,6 +81,7 @@ void setDisplayDefaults(){
 
 
 void displayHeader(String str){
+
 	matrix.setTextColor(matrix.Color888(colorHeader[0],colorHeader[1],colorHeader[2]));
 	matrix.setCursor(0, 0);
 	matrix.setTextWrap(true); // will override other text on screen, be careful
@@ -88,6 +89,7 @@ void displayHeader(String str){
 }
 
 void displayBody(String str){
+
 	matrix.setTextColor(matrix.Color888(colorBody[0],colorBody[1],colorBody[2]));
 	matrix.setCursor(0, 8);
 	matrix.setTextWrap(false);
@@ -98,7 +100,8 @@ void displayBody(String str){
 
 
 void displayScroll(String str){
-    matrix.fillRect(0, 16, 64, 8, 0); // clear row by creating a black rectangle
+		// note, text is cleared in the displayScroll function since its part of the loop
+		matrix.fillRect(0, 16, 64, 8, 0); // clear
     matrix.setTextWrap(false);
     matrix.setTextColor(matrix.Color888(colorScroll[0],colorScroll[1],colorScroll[2]));
     matrix.setCursor(scrollTextX, 16);
@@ -113,6 +116,7 @@ void displayScroll(String str){
 }
 
 void displayFooter(String str){
+
 	matrix.setTextColor(matrix.Color888(colorFooter[0],colorFooter[1],colorFooter[2]));
 	matrix.setCursor(0, 24);
 	matrix.setTextWrap(false);
@@ -121,30 +125,27 @@ void displayFooter(String str){
 
 
 // API Function Handlers
-// These functions primarily set the state of a given variable. T
+// These functions primarily set the state of a given variable.
 int setTextHeader(String str){
-    // clear row by creating a black rectangle
-    //matrix.fillRect(0, 0, 64, 8, matrix.Color333(0, 0, 0)); // 1 row
-    matrix.fillRect(0, 0, 64, 16, matrix.Color333(0, 0, 0)); // 2 rows
+	matrix.fillRect(0, 0, 64, 16, matrix.Color333(0, 0, 0)); // clear 2 rows
+	matrix.fillRect(0, 8, 64, 8, matrix.Color333(0, 0, 0)); // clear
 	textHeader = str;
 	return 1;
 }
 int setTextBody(String str){
-    // clear row by creating a black rectangle
-    matrix.fillRect(0, 8, 64, 8, matrix.Color333(0, 0, 0));
+	matrix.fillRect(0, 8, 64, 8, matrix.Color333(0, 0, 0)); // clear
 	textBody = str;
 	return 1;
 }
 int setTextScroll(String str){
-    // note, text is cleared in the displayScroll function since its part of the loop
-    Serial.print("scrolling text set");
-    Serial.print(str);
-	textScroll = str;
+		matrix.fillRect(0, 16, 64, 8, 0); // clear
+		Serial.print("scrolling text set");
+		Serial.print(str);
+		textScroll = str;
     scrollTextMin = sizeof(str) * -12;
 	return 1;
 }
 int setTextFooter(String str){
-    matrix.fillRect(0, 24, 64, 8, matrix.Color333(0, 0, 0)); // clear row by creating a black rectangle
 	textFooter = str;
 	return 1;
 }
@@ -256,6 +257,7 @@ int setColorScroll(String str){
 }
 
 int setColorFooter(String str){
+	matrix.fillRect(0, 24, 64, 8, matrix.Color333(0, 0, 0)); // clear
 	Serial.print("setColorFooter str");
 	Serial.print(str);
 
@@ -288,6 +290,219 @@ int setColorFooter(String str){
     Serial.print(String(colorFooter[2]));
 	return 1;
 }
+
+// JSON API
+
+// limited to 53 total characters, so the JSON needs to be really small. Other API endpoint were created to overcome this.
+int setScreenJson(String str){
+		Serial.print("setScreen str");
+		Serial.print(str);
+
+	    // Convert String to Char array
+		char char_array[128];
+
+		// Copy it over
+		str.toCharArray(char_array, 128);
+		StaticJsonBuffer<200> jsonBuffer;
+
+		// Parse object
+		JsonObject& json = jsonBuffer.parseObject(char_array);
+		Serial.print('char_array');
+		Serial.print(char_array);
+	    // JsonObject& json = stringToJSON(str);
+		/* error handling
+	    if(!json.containsKey("r")){
+				return -1;
+		}
+		*/
+
+		// Assign values
+		textHeader = json["h"];
+		textBody = json["b"];
+		textScroll = json["s"];
+		textFooter = json["f"];
+
+		/*
+		int hcolor[3] = json["hc"];
+		int bcolor[3] = json["bc"];
+		int scolor[3] = json["sc"];
+		int fcolor[3] = json["fc"];
+
+		colorHeader = hcolor;
+		colorBody = bcolor;
+		colorScroll = scolor;
+		colorFooter = fcolor;
+		*/
+
+		// assign colors (works but could be improved)
+		colorHeader[0] = json["hc"][0];// || colorHeader[0];
+		colorHeader[1] = json["hc"][1];// || colorHeader[1];
+		colorHeader[2] = json["hc"][2];// || colorHeader[2];
+
+		colorBody[0] = json["bc"][0];
+		colorBody[1] = json["bc"][1];
+		colorBody[2] = json["bc"][2];
+
+		colorScroll[0] = json["sc"][0];
+		colorScroll[1] = json["sc"][1];
+		colorScroll[2] = json["sc"][2];
+
+		colorFooter[0] = json["fc"][0];
+		colorFooter[1] = json["fc"][1];
+		colorFooter[2] = json["fc"][2];
+
+
+		Serial.print("textHeader: " + (String)textHeader);
+		Serial.println("colorFooter[] = ");
+    Serial.print(String(colorHeader[0])+", ");
+    Serial.print(String(colorHeader[1])+", ");
+    Serial.print(String(colorHeader[2]));
+	return 1;
+}
+
+
+
+int setHeaderJson(String str){
+	matrix.fillRect(0, 0, 64, 8, matrix.Color333(0, 0, 0)); // clear 2 rows
+	matrix.fillRect(0, 8, 64, 8, matrix.Color333(0, 0, 0)); // clear
+
+	Serial.print("setHeader str: ");
+	Serial.println(str);
+
+  // Convert String to Char array
+	char char_array[64];
+	// Copy it over
+	str.toCharArray(char_array, 64);
+	StaticJsonBuffer<200> jsonBuffer;
+	// Parse object
+	JsonObject& json = jsonBuffer.parseObject(char_array);
+	json.printTo(Serial);
+
+	// Assign values
+	if(json.containsKey("t")){
+		// text
+		textHeader = json["t"];
+		Serial.print("textHeader: ");
+		Serial.println(textHeader);
+	}
+
+	if(json.containsKey("c")){
+		// colors
+		colorHeader[0] = json["c"][0];
+		colorHeader[1] = json["c"][1];
+		colorHeader[2] = json["c"][2];
+
+		Serial.print("colorHeader: ");
+    Serial.print(String(colorHeader[0])+", ");
+    Serial.print(String(colorHeader[1])+", ");
+    Serial.print(String(colorHeader[2]));
+	}
+	return 1;
+}
+
+int setBodyJson(String str){
+	matrix.fillRect(0, 8, 64, 8, matrix.Color333(0, 0, 0)); // clear
+	Serial.print("setFooter str");
+	Serial.print(str);
+	// Convert String to Char array
+	char char_array[64];
+	// Copy it over
+	str.toCharArray(char_array, 64);
+	StaticJsonBuffer<200> jsonBuffer;
+	// Parse object
+	JsonObject& json = jsonBuffer.parseObject(char_array);
+	json.printTo(Serial);
+	// Assign values
+	if(json.containsKey("t")){
+		// text
+		textBody = json["t"];
+		Serial.print("body: ");
+		Serial.println(textBody);
+	}
+
+	if(json.containsKey("c")){
+		// colors
+		colorBody[0] = json["c"][0];
+		colorBody[1] = json["c"][1];
+		colorBody[2] = json["c"][2];
+		Serial.print("colors: ");
+    Serial.print(String(colorBody[0])+", ");
+    Serial.print(String(colorBody[1])+", ");
+    Serial.print(String(colorBody[2]));
+	}
+	return 1;
+}
+
+int setScrollJson(String str){
+	matrix.fillRect(0, 16, 64, 8, 0); // clear
+	scrollTextMin = sizeof(str) * -12;
+
+	Serial.print("scrolling text set");
+	Serial.print(str);
+	// Convert String to Char array
+	char char_array[64];
+	// Copy it over
+	str.toCharArray(char_array, 64);
+	StaticJsonBuffer<200> jsonBuffer;
+	// Parse object
+	JsonObject& json = jsonBuffer.parseObject(char_array);
+	json.printTo(Serial);
+	// Assign values
+	if(json.containsKey("t")){
+		// text
+		textScroll = json["t"];
+		Serial.print("text: ");
+		Serial.println(textScroll);
+	}
+
+	if(json.containsKey("c")){
+		// colors
+		colorScroll[0] = json["c"][0];
+		colorScroll[1] = json["c"][1];
+		colorScroll[2] = json["c"][2];
+		Serial.print("colors: ");
+    Serial.print(String(colorScroll[0])+", ");
+    Serial.print(String(colorScroll[1])+", ");
+    Serial.print(String(colorScroll[2]));
+	}
+	return 1;
+}
+
+int setFooterJson(String str){
+	matrix.fillRect(0, 24, 64, 8, 0); // clear
+
+	Serial.print("footer text set");
+	Serial.print(str);
+	// Convert String to Char array
+	char char_array[64];
+	// Copy it over
+	str.toCharArray(char_array, 64);
+	StaticJsonBuffer<200> jsonBuffer;
+	// Parse object
+	JsonObject& json = jsonBuffer.parseObject(char_array);
+	json.printTo(Serial);
+	// Assign values
+	if(json.containsKey("t")){
+		// text
+		textFooter = json["t"];
+		Serial.print("text: ");
+		Serial.println(textFooter);
+	}
+
+	if(json.containsKey("c")){
+		// colors
+		colorFooter[0] = json["c"][0];
+		colorFooter[1] = json["c"][1];
+		colorFooter[2] = json["c"][2];
+		Serial.print("colors: ");
+    Serial.print(String(colorFooter[0])+", ");
+    Serial.print(String(colorFooter[1])+", ");
+    Serial.print(String(colorFooter[2]));
+	}
+	return 1;
+}
+
+// Program Settings
 
 int setProgramSpeed(String str){
 	Serial.print("setSpeed str");
@@ -342,6 +557,15 @@ void setup() {
 	Particle.function("colorbody", setColorBody); // string json {"color":[1,2,3]}
 	Particle.function("colorscroll", setColorScroll); // string json {"color":[1,2,3]}
 	Particle.function("colorfooter", setColorFooter); // string json {"color":[1,2,3]}
+
+	// API Combo (text & color)
+	Particle.function("screenjson", setScreenJson); // string json {"h":"header", "b": "body", "s", "scroll"}
+	Particle.function("headerjson", setHeaderJson); // string json {"t":"header", "c": [100,2,3]}  r,g,b
+	Particle.function("bodyjson", setBodyJson); // string json {"t":"body", "c": [100,2,3]}  r,g,b
+	Particle.function("scrolljson", setScrollJson); // string json {"t":"scroll", "c": [100,2,3]}  r,g,b
+	Particle.function("footerjson", setFooterJson); // string json {"t":"footer", "c": [100,2,3]}  r,g,b
+
+
 
 	// Program Options
 	Particle.function("programspeed", setProgramSpeed); // string integer
